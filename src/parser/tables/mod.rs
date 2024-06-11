@@ -3,7 +3,7 @@ mod gdef;
 use std::collections::HashMap;
 use std::str::from_utf8;
 use crate::data_stream::DataStream;
-use crate::parser::tables::gdef::GDEFHeader;
+use crate::parser::tables::gdef::{GDEFHeader, GDEFTable, GlyphClassDefinitionTable};
 
 pub struct TableDirectory<'a> {
     sfnt_version: u32,
@@ -48,7 +48,7 @@ impl<'a> TableDirectory<'a> {
 
     pub fn format_tables(&mut self) {
         let gdef_data = self.table_data.get_mut("GDEF").unwrap();
-        let gdef_header = GDEFHeader::new(gdef_data);
+        let gdef_table = GDEFTable::new(gdef_data);
     }
 
     pub fn match_table(table_tag: &[u8;4]) -> String {
@@ -133,5 +133,35 @@ impl TableRecord {
 
         table_record
     }
+}
+
+pub struct ClassDefinitionFormatOneHeader {
+    start_glyph_id: u16,
+    glyph_count: u16,
+    class_values: Vec<u16>,
+}
+
+impl ClassDefinitionFormatOneHeader {
+    pub fn new(data_stream: &mut DataStream) -> Self {
+        let start_glyph_id = data_stream.read::<u16>().unwrap();
+        let glyph_count = data_stream.read::<u16>().unwrap();
+        let mut class_values: Vec<u16> = Vec::new();
+
+        for i in 0..glyph_count {
+            let class_value = data_stream.read::<u16>().unwrap();
+            class_values.push(class_value)
+        }
+
+        Self {
+            start_glyph_id,
+            glyph_count,
+            class_values
+        }
+    }
+}
+
+pub struct ClassDefinitionFormatTwoHeader {
+    class_range_count: u16,
+    class_values: Vec<u16>,
 }
 

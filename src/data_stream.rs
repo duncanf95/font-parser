@@ -28,7 +28,11 @@ impl<'a> DataStream<'a> {
     }
 
     pub fn advance(&mut self, length: usize) {
-        self.offset += length
+        self.offset += length;
+    }
+
+    pub fn reset_offset(&mut self) {
+        self.offset = 0;
     }
 }
 
