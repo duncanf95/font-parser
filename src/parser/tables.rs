@@ -1,5 +1,5 @@
-use std::mem::size_of;
-use crate::parser::ByteConverter;
+use std::str::from_utf8;
+use crate::data_stream::DataStream;
 
 pub struct TableDirectory {
     sfnt_version: u32,
@@ -8,16 +8,15 @@ pub struct TableDirectory {
 }
 
 impl TableDirectory {
-    pub fn new(font_data: &mut Vec<u8>) -> Self {
-        let (sfnt_version, mut font_data) = ByteConverter::get_next_u32(font_data);
-        let (num_tables, mut font_data) = ByteConverter::get_next_u16(&mut font_data);
-        font_data = font_data.split_off(6);
+    pub fn new(mut data_stream: &mut DataStream) -> Self {
+        let sfnt_version = data_stream.read::<u32>().unwrap();
+        let num_tables = data_stream.read::<u16>().unwrap();
+        data_stream.advance(6);
         let mut table_records: Vec<TableRecord> = Vec::new();
 
         for i in 0..num_tables {
-            let (table_record, mut new_font_data) = TableRecord::new(&mut font_data);
+            let table_record = TableRecord::new(&mut data_stream);
             table_records.push(table_record);
-            font_data = new_font_data;
         }
 
         Self {
@@ -29,49 +28,59 @@ impl TableDirectory {
 
     pub fn match_tables(&self) {
         for table_record in &self.table_records {
+
             match &table_record.tag {
-                b"bdat" => println!("table is bdat"),
-                b"bloc" => println!("table is bloc"),
-                b"CFF " => println!("table is CFF"),
+                b"avar" => println!("table is avar"),
+                b"BASE" => println!("table is BASE"),
                 b"CBDT" => println!("table is CBDT"),
                 b"CBLC" => println!("table is CBLC"),
+                b"CFF " => println!("table is CFF"),
                 b"CFF2" => println!("table is CFF2"),
+                b"cmap" => println!("table is cmap"),
                 b"COLR" => println!("table is COLR"),
                 b"CPAL" => println!("table is CPAL"),
+                b"cvar" => println!("table is cvar"),
+                b"cvt " => println!("table is cvt"),
+                b"DSIG" => println!("table is DSIG"),
                 b"EBDT" => println!("table is EBDT"),
                 b"EBLC" => println!("table is EBLC"),
+                b"EBSC" => println!("table is EBSC"),
+                b"fpgm" => println!("table is fpgm"),
+                b"fvar" => println!("table is fvar"),
+                b"gasp" => println!("table is gasp"),
                 b"GDEF" => println!("table is GDEF"),
+                b"glyf" => println!("table is glyf"),
                 b"GPOS" => println!("table is GPOS"),
                 b"GSUB" => println!("table is GSUB"),
-                b"MATH" => println!("table is MATH"),
-                b"HVAR" => println!("table is HVAR"),
-                b"MVAR" => println!("table is MVAR"),
-                b"OS/2" => println!("table is OS/2"),
-                b"SVG " => println!("table is SVG "),
-                b"VORG" => println!("table is VORG"),
-                b"VVAR" => println!("table is VVAR"),
-                b"ankr" => println!("table is ankr"),
-                b"avar" => println!("table is avar"),
-                b"cmap" => println!("table is cmap"),
-                b"feat" => println!("table is feat"),
-                b"fvar" => println!("table is fvar"),
-                b"glyf" => println!("table is glyf"),
                 b"gvar" => println!("table is gvar"),
+                b"hdmx" => println!("table is hdmx"),
                 b"head" => println!("table is head"),
                 b"hhea" => println!("table is hhea"),
                 b"hmtx" => println!("table is hmtx"),
+                b"HVAR" => println!("table is HVAR"),
+                b"JSTF" => println!("table is JSTF"),
                 b"kern" => println!("table is kern"),
-                b"kerx" => println!("table is kerx"),
                 b"loca" => println!("table is loca"),
+                b"LTSH" => println!("table is LTSH"),
+                b"MATH" => println!("table is MATH"),
                 b"maxp" => println!("table is maxp"),
-                b"morx" => println!("table is morx"),
-                b"name" => println!("table is name"),
+                b"MERG" => println!("table is MERG"),
+                b"meta" => println!("table is meta"),
+                b"MVAR" => println!("table is MVAR"),
+                b"PCLT" => println!("table is PCLT"),
                 b"post" => println!("table is post"),
+                b"prep" => println!("table is prep"),
                 b"sbix" => println!("table is sbix"),
-                b"trak" => println!("table is trak"),
+                b"STAT" => println!("table is STAT"),
+                b"SVG " => println!("table is SVG"),
+                b"VDMX" => println!("table is VDMX"),
                 b"vhea" => println!("table is vhea"),
                 b"vmtx" => println!("table is vmtx"),
-                _=> println!("Unknown Table!")
+                b"VORG" => println!("table is VORG"),
+                b"VVAR" => println!("table is VVAR"),
+                b"name" => println!("table is name"),
+                b"OS/2" => println!("table is OS/2"),
+                _=> println!("Unknown Table! {:?}", from_utf8(&table_record.tag))
             }
         }
     }
@@ -86,11 +95,11 @@ pub struct TableRecord {
 }
 
 impl TableRecord {
-    pub fn new(font_data: &mut Vec<u8>) -> (Self, Vec<u8>) {
-        let (tag, mut font_data) = Self::get_tag(font_data);
-        let (check_sum, mut font_data) = ByteConverter::get_next_u32(&mut font_data);
-        let (offset, mut font_data) = ByteConverter::get_next_u32(&mut font_data);
-        let (length, mut font_data) = ByteConverter::get_next_u32(&mut font_data);
+    pub fn new(data_stream: &mut DataStream) -> Self {
+        let tag = data_stream.read::<[u8;4]>().unwrap();
+        let check_sum = data_stream.read::<u32>().unwrap();
+        let offset = data_stream.read::<u32>().unwrap();
+        let length = data_stream.read::<u32>().unwrap();
 
         let table_record = Self {
             tag,
@@ -99,13 +108,7 @@ impl TableRecord {
             length
         };
 
-        (table_record, font_data)
-    }
-
-    fn get_tag(font_data: &mut Vec<u8>) -> ([u8;4], Vec<u8>) {
-        let (tag_bytes, font_data) = font_data.split_at_mut(4);
-        let tag = ByteConverter::to_raw_u32(tag_bytes.to_vec());
-        (tag, font_data.to_vec())
+        table_record
     }
 }
 
