@@ -71,16 +71,17 @@ impl GlyphClassDefinitionTable {
         data_stream.advance(offset as usize);
         let format = data_stream.read::<u16>().unwrap();
         let mut format_one = None;
+        let mut format_two = None;
         match &format {
             1 => format_one = Some(ClassDefinitionFormatOneHeader::new(data_stream)),
-            2 => println!("format 2"),
+            2 => format_two = Some(ClassDefinitionFormatTwoHeader::new(data_stream)),
             _=> println!("INVALID FORMAT")
         }
 
         Self {
             format,
             format_one,
-            format_two: None,
+            format_two,
         }
     }
 }

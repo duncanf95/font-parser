@@ -162,6 +162,43 @@ impl ClassDefinitionFormatOneHeader {
 
 pub struct ClassDefinitionFormatTwoHeader {
     class_range_count: u16,
-    class_values: Vec<u16>,
+    class_range_records: Vec<ClassRangeRecord>,
+}
+
+impl ClassDefinitionFormatTwoHeader {
+    pub fn new(data_stream: &mut DataStream) -> Self {
+        let class_range_count = data_stream.read::<u16>().unwrap();
+        let mut class_range_records: Vec<ClassRangeRecord> = Vec::new();
+
+        for i in 0..class_range_count {
+            let class_range_record = ClassRangeRecord::new(data_stream);
+            class_range_records.push(class_range_record)
+        }
+
+        Self {
+            class_range_count,
+            class_range_records
+        }
+    }
+}
+
+pub struct ClassRangeRecord {
+    start_glyph_id: u16,
+    end_glyph_id: u16,
+    class: u16,
+}
+
+impl ClassRangeRecord {
+    pub fn new(data_stream: &mut DataStream) -> Self {
+        let start_glyph_id = data_stream.read::<u16>().unwrap();
+        let end_glyph_id = data_stream.read::<u16>().unwrap();
+        let class = data_stream.read::<u16>().unwrap();
+
+        Self {
+            start_glyph_id,
+            end_glyph_id,
+            class
+        }
+    }
 }
 
