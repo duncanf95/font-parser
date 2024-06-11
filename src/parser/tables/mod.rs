@@ -1,10 +1,14 @@
+mod gdef;
+
 use std::collections::HashMap;
 use std::str::from_utf8;
 use crate::data_stream::DataStream;
+use crate::parser::tables::gdef::GDEFHeader;
 
 pub struct TableDirectory<'a> {
     sfnt_version: u32,
     num_tables: u16,
+    data_stream: &'a DataStream<'a>,
     table_records: Vec<TableRecord>,
     table_data: HashMap<String, DataStream<'a>>
 }
@@ -27,7 +31,8 @@ impl<'a> TableDirectory<'a> {
             sfnt_version,
             num_tables,
             table_records,
-            table_data
+            table_data,
+            data_stream
         }
     }
 
@@ -39,6 +44,11 @@ impl<'a> TableDirectory<'a> {
             table_data.insert(tag_string, DataStream::new(data));
         }
         table_data
+    }
+
+    pub fn format_tables(&mut self) {
+        let gdef_data = self.table_data.get_mut("GDEF").unwrap();
+        let gdef_header = GDEFHeader::new(gdef_data);
     }
 
     pub fn match_table(table_tag: &[u8;4]) -> String {
