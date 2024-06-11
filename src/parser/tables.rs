@@ -1,14 +1,16 @@
+use std::collections::HashMap;
 use std::str::from_utf8;
 use crate::data_stream::DataStream;
 
-pub struct TableDirectory {
+pub struct TableDirectory<'a> {
     sfnt_version: u32,
     num_tables: u16,
-    table_records: Vec<TableRecord>
+    table_records: Vec<TableRecord>,
+    table_data: HashMap<String, DataStream<'a>>
 }
 
-impl TableDirectory {
-    pub fn new(mut data_stream: &mut DataStream) -> Self {
+impl<'a> TableDirectory<'a> {
+    pub fn new(mut data_stream: &'a mut DataStream) -> Self {
         let sfnt_version = data_stream.read::<u32>().unwrap();
         let num_tables = data_stream.read::<u16>().unwrap();
         data_stream.advance(6);
@@ -19,73 +21,84 @@ impl TableDirectory {
             table_records.push(table_record);
         }
 
+        let table_data = Self::populate_table_data(&table_records, data_stream);
+
         Self {
             sfnt_version,
             num_tables,
-            table_records
+            table_records,
+            table_data
         }
     }
 
-    pub fn match_tables(&self) {
-        for table_record in &self.table_records {
-
-            match &table_record.tag {
-                b"avar" => println!("table is avar"),
-                b"BASE" => println!("table is BASE"),
-                b"CBDT" => println!("table is CBDT"),
-                b"CBLC" => println!("table is CBLC"),
-                b"CFF " => println!("table is CFF"),
-                b"CFF2" => println!("table is CFF2"),
-                b"cmap" => println!("table is cmap"),
-                b"COLR" => println!("table is COLR"),
-                b"CPAL" => println!("table is CPAL"),
-                b"cvar" => println!("table is cvar"),
-                b"cvt " => println!("table is cvt"),
-                b"DSIG" => println!("table is DSIG"),
-                b"EBDT" => println!("table is EBDT"),
-                b"EBLC" => println!("table is EBLC"),
-                b"EBSC" => println!("table is EBSC"),
-                b"fpgm" => println!("table is fpgm"),
-                b"fvar" => println!("table is fvar"),
-                b"gasp" => println!("table is gasp"),
-                b"GDEF" => println!("table is GDEF"),
-                b"glyf" => println!("table is glyf"),
-                b"GPOS" => println!("table is GPOS"),
-                b"GSUB" => println!("table is GSUB"),
-                b"gvar" => println!("table is gvar"),
-                b"hdmx" => println!("table is hdmx"),
-                b"head" => println!("table is head"),
-                b"hhea" => println!("table is hhea"),
-                b"hmtx" => println!("table is hmtx"),
-                b"HVAR" => println!("table is HVAR"),
-                b"JSTF" => println!("table is JSTF"),
-                b"kern" => println!("table is kern"),
-                b"loca" => println!("table is loca"),
-                b"LTSH" => println!("table is LTSH"),
-                b"MATH" => println!("table is MATH"),
-                b"maxp" => println!("table is maxp"),
-                b"MERG" => println!("table is MERG"),
-                b"meta" => println!("table is meta"),
-                b"MVAR" => println!("table is MVAR"),
-                b"PCLT" => println!("table is PCLT"),
-                b"post" => println!("table is post"),
-                b"prep" => println!("table is prep"),
-                b"sbix" => println!("table is sbix"),
-                b"STAT" => println!("table is STAT"),
-                b"SVG " => println!("table is SVG"),
-                b"VDMX" => println!("table is VDMX"),
-                b"vhea" => println!("table is vhea"),
-                b"vmtx" => println!("table is vmtx"),
-                b"VORG" => println!("table is VORG"),
-                b"VVAR" => println!("table is VVAR"),
-                b"name" => println!("table is name"),
-                b"OS/2" => println!("table is OS/2"),
-                _=> println!("Unknown Table! {:?}", from_utf8(&table_record.tag))
-            }
+    fn populate_table_data(table_records: &Vec<TableRecord>, data_stream: &'a DataStream) -> HashMap<String, DataStream<'a>> {
+        let mut table_data = HashMap::new();
+        for table_record in table_records {
+            let tag_string = Self::match_table(&table_record.tag);
+            let data = data_stream.read_bytes_at(table_record.offset as usize, table_record.length as usize).unwrap();
+            table_data.insert(tag_string, DataStream::new(data));
         }
+        table_data
     }
 
+    pub fn match_table(table_tag: &[u8;4]) -> String {
+        match table_tag {
+            b"avar" => return "avar".to_string(),
+            b"BASE" => return "BASE".to_string(),
+            b"CBDT" => return "CBDT".to_string(),
+            b"CBLC" => return "CBLC".to_string(),
+            b"CFF " => return "CFF".to_string(),
+            b"CFF2" => return "CFF2".to_string(),
+            b"cmap" => return "cmap".to_string(),
+            b"COLR" => return "COLR".to_string(),
+            b"CPAL" => return "CPAL".to_string(),
+            b"cvar" => return "cvar".to_string(),
+            b"cvt " => return "cvt".to_string(),
+            b"DSIG" => return "DSIG".to_string(),
+            b"EBDT" => return "EBDT".to_string(),
+            b"EBLC" => return "EBLC".to_string(),
+            b"EBSC" => return "EBSC".to_string(),
+            b"fpgm" => return "fpgm".to_string(),
+            b"fvar" => return "fvar".to_string(),
+            b"gasp" => return "gasp".to_string(),
+            b"GDEF" => return "GDEF".to_string(),
+            b"glyf" => return "glyf".to_string(),
+            b"GPOS" => return "GPOS".to_string(),
+            b"GSUB" => return "GSUB".to_string(),
+            b"gvar" => return "gvar".to_string(),
+            b"hdmx" => return "hdmx".to_string(),
+            b"head" => return "head".to_string(),
+            b"hhea" => return "hhea".to_string(),
+            b"hmtx" => return "hmtx".to_string(),
+            b"HVAR" => return "HVAR".to_string(),
+            b"JSTF" => return "JSTF".to_string(),
+            b"kern" => return "kern".to_string(),
+            b"loca" => return "loca".to_string(),
+            b"LTSH" => return "LTSH".to_string(),
+            b"MATH" => return "MATH".to_string(),
+            b"maxp" => return "maxp".to_string(),
+            b"MERG" => return "MERG".to_string(),
+            b"meta" => return "meta".to_string(),
+            b"MVAR" => return "MVAR".to_string(),
+            b"PCLT" => return "PCLT".to_string(),
+            b"post" => return "post".to_string(),
+            b"prep" => return "prep".to_string(),
+            b"sbix" => return "sbix".to_string(),
+            b"STAT" => return "STAT".to_string(),
+            b"SVG " => return "SVG".to_string(),
+            b"VDMX" => return "VDMX".to_string(),
+            b"vhea" => return "vhea".to_string(),
+            b"vmtx" => return "vmtx".to_string(),
+            b"VORG" => return "VORG".to_string(),
+            b"VVAR" => return "VVAR".to_string(),
+            b"name" => return "name".to_string(),
+            b"OS/2" => return "OS/2".to_string(),
+            _=> return "UNKNOWN".to_string()
+        }
+    }
 }
+
+
 
 pub struct TableRecord {
     tag: [u8;4],

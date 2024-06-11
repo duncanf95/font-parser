@@ -22,6 +22,11 @@ impl<'a> DataStream<'a> {
         Some(bytes)
     }
 
+    pub fn read_bytes_at(&self, offset: usize, length: usize) -> Option<&'a [u8]> {
+        let bytes = &self.bytes[offset..offset + length];
+        Some(bytes)
+    }
+
     pub fn advance(&mut self, length: usize) {
         self.offset += length
     }
