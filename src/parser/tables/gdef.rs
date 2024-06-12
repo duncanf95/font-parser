@@ -53,6 +53,7 @@ impl GDEFTable {
         let header = GDEFHeader::new(data_stream);
         let glyph_class_definition_table = GlyphClassDefinitionTable::new(data_stream, header.glyph_class_def_offset);
 
+
         Self {
             header,
             glyph_class_definition_table
@@ -68,6 +69,7 @@ pub struct GlyphClassDefinitionTable {
 
 impl GlyphClassDefinitionTable {
     pub fn new(data_stream: &mut DataStream, offset: u16) -> Self {
+        data_stream.reset_offset();
         data_stream.advance(offset as usize);
         let format = data_stream.read::<u16>().unwrap();
         let mut format_one = None;
